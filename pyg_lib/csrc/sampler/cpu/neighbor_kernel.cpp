@@ -144,17 +144,39 @@ class NeighborSampler {
 
     // Case 3: Sample without replacement:
     else {
-      auto index_tracker = IndexTracker<scalar_t>(population);
-      for (size_t i = population - count; i < population; ++i) {
-        auto rnd = generator(0, i + 1);
-        if (!index_tracker.try_insert(rnd)) {
-          rnd = i;
-          index_tracker.insert(i);
+      // reservoir 
+      std::vector<scalar_t> edge_list (count);
+      for (size_t i = 0; i < population; ++i) {
+        const auto edge_id = row_start + i;
+        if (i < count) {
+          // directly add to edge_list 
+          edge_list[i] = edge_id;
+        } else {
+          auto rnd = generator(0, i + 1);
+          if (rnd < count) {
+            edge_list[rnd] = edge_id; 
+          }
         }
-        const auto edge_id = row_start + rnd;
-        add(edge_id, global_src_node, local_src_node, dst_mapper,
-            out_global_dst_nodes);
       }
+      std::sort(edge_list.begin(),edge_list.end());//Sorting the edge_list
+
+      for(auto i=edge_list.begin(); i<edge_list.end(); i++){
+        const auto edge = *i;
+        add(edge, global_src_node, local_src_node, dst_mapper, out_global_dst_nodes);
+      }
+
+      // original
+      // auto index_tracker = IndexTracker<scalar_t>(population);
+      // for (size_t i = population - count; i < population; ++i) {
+      //   auto rnd = generator(0, i + 1);
+      //   if (!index_tracker.try_insert(rnd)) {
+      //     rnd = i;
+      //     index_tracker.insert(i);
+      //   }
+      //   const auto edge_id = row_start + rnd;
+      //   add(edge_id, global_src_node, local_src_node, dst_mapper,
+      //       out_global_dst_nodes);
+      // }
     }
   }
 
